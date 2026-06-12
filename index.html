@@ -62,6 +62,8 @@
       font-size: 0.8125rem;
       color: rgba(255, 255, 255, 0.6);
       margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
     }
 
     .disclaimer a { color: rgba(255, 255, 255, 0.85); }
@@ -288,6 +290,64 @@
 
     .result-footer a { color: var(--text); }
 
+    /* Info icon + tooltip */
+    .info-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+      margin-left: 0.2rem;
+    }
+
+    .info-btn {
+      width: 0.9rem;
+      height: 0.9rem;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      border: none;
+      font-size: 0.5625rem;
+      font-style: italic;
+      font-weight: 700;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .form-row label > span:hover .info-btn,
+    .info-btn:focus { background: var(--text); color: #fff; outline: none; }
+    .info-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(75, 82, 95, 0.92);
+      color: #fff;
+      font-size: 0.6875rem;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      width: max-content;
+      max-width: min(280px, calc(100vw - 2rem));
+      white-space: normal;
+      padding: 0.35rem 0.6rem;
+      border-radius: calc(var(--radius) - 2px);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s;
+      z-index: 20;
+    }
+
+    .tooltip.show { opacity: 1; }
+
     @media (max-width: 480px) {
       .form-row { flex-direction: column; }
       .job-fields { gap: 0.75rem; }
@@ -313,9 +373,9 @@
         <label>Job name (optional)<input id="draft-name" type="text" placeholder="e.g. Company or Title"></label>
       </div>
       <div class="form-row">
-        <label>Gross pay (£)<input id="draft-gross" type="number" min="0" placeholder="7500"></label>
-        <label>Tax deducted (£)<input id="draft-tax" type="number" min="0" placeholder="870"></label>
-        <label>Tax code<input id="draft-code" type="text" placeholder="1257L"></label>
+        <label><span>Gross pay (£)<span class="info-wrap"><button type="button" class="info-btn" aria-label="Gross pay information" aria-describedby="tip-gross">i</button><span id="tip-gross" class="tooltip" role="tooltip">Your total pay for the year — from your P60, P45, or payslip.</span></span></span><input id="draft-gross" type="number" min="0" placeholder="7500" aria-describedby="tip-gross"></label>
+        <label><span>Tax deducted (£)<span class="info-wrap"><button type="button" class="info-btn" aria-label="Tax deducted information" aria-describedby="tip-tax">i</button><span id="tip-tax" class="tooltip" role="tooltip">Total tax taken this year — from your P60, P45, or payslip.</span></span></span><input id="draft-tax" type="number" min="0" placeholder="870" aria-describedby="tip-tax"></label>
+        <label><span>Tax code<span class="info-wrap"><button type="button" class="info-btn" aria-label="Tax code information" aria-describedby="tip-code">i</button><span id="tip-code" class="tooltip" role="tooltip">e.g. 1257L or BR — on your payslip, P60, or P45.</span></span></span><input id="draft-code" type="text" placeholder="1257L" aria-describedby="tip-code"></label>
       </div>
       <p id="form-error" class="form-error" hidden aria-live="polite"></p>
       <button id="add-btn" class="btn-primary" onclick="addJob()">+ Add job</button>
@@ -587,6 +647,14 @@
     }
 
     render();
+
+    document.querySelectorAll('.info-btn').forEach(function(btn) {
+      var tip = document.getElementById(btn.getAttribute('aria-describedby'));
+      btn.addEventListener('mouseenter', function() { tip.classList.add('show'); });
+      btn.addEventListener('mouseleave', function() { tip.classList.remove('show'); });
+      btn.addEventListener('focus',      function() { tip.classList.add('show'); });
+      btn.addEventListener('blur',       function() { tip.classList.remove('show'); });
+    });
   </script>
 </body>
 </html>
