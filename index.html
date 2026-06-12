@@ -2,21 +2,293 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tax Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* styles go here later */
+    :root {
+      --bg:       #f0f2f5;
+      --surface:  #ffffff;
+      --border:   #e2e5ea;
+      --text:     #1a1d23;
+      --muted:    #6b7280;
+      --green:    #15803d;
+      --green-bg: #dcfce7;
+      --amber:    #b45309;
+      --amber-bg: #fef3c7;
+      --radius:   8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    header {
+      background: var(--text);
+      color: #fff;
+      padding: 1.5rem;
+      margin: -2rem -1rem 1.75rem;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    header h1 { color: #fff; margin-bottom: 0.6rem; }
+
+    .disclaimer {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 0;
+    }
+
+    .disclaimer a { color: rgba(255, 255, 255, 0.85); }
+
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .form-row label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .form-row input {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.9375rem;
+      padding: 0.5rem 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    .form-row input:focus { outline: none; border-color: var(--text); }
+    .form-row input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .form-error {
+      font-size: 0.8125rem;
+      color: var(--amber);
+      margin-bottom: 0.5rem;
+    }
+
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-primary:hover { opacity: 0.82; }
+    .btn-primary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .job-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .job-fields { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+    .job-field { display: flex; flex-direction: column; gap: 0.2rem; }
+
+    .field-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .remove-btn {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-left: 1rem;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .remove-btn:hover { color: var(--text); border-color: var(--text); }
+    .remove-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.9375rem;
+      padding: 2rem 0;
+    }
+
+    #calc-btn { margin-top: 1rem; }
+
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      background: var(--surface);
+    }
+
+    .result-card.green { background: var(--green-bg); border-color: #86efac; }
+    .result-card.amber { background: var(--amber-bg); border-color: #fcd34d; }
+
+    .result-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .result-card hr { border: none; border-top: 1px solid var(--border); margin: 0.75rem 0; }
+
+    .result-figure {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-card.green .result-figure { color: var(--green); }
+    .result-card.amber .result-figure { color: var(--amber); }
+
+    .result-verdict { font-size: 0.9375rem; margin-bottom: 1.25rem; }
+
+    .result-breakdown {
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.9375rem;
+      padding: 0.3rem 0;
+    }
+
+    .breakdown-row span:first-child { color: var(--muted); }
+
+    .result-card ul {
+      font-size: 0.875rem;
+      padding-left: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .result-footer {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .result-footer a { color: var(--text); }
+
+    @media (max-width: 480px) {
+      .form-row { flex-direction: column; }
+      .job-fields { gap: 0.75rem; }
+      h1 { font-size: 1.625rem; }
+      .result-figure { font-size: 1.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
   </style>
 </head>
 <body>
-  <h1>Tax Overpayment Checker</h1>
+  <header>
+    <h1>Tax Overpayment Checker</h1>
+    <p class="disclaimer"><strong>Estimate only — not tax advice.</strong> Income tax only (no NI or student loan). England, Wales &amp; Northern Ireland rules. Always verify against <a href="https://www.gov.uk/check-income-tax-current-year" target="_blank">your HMRC personal tax account</a>.</p>
+  </header>
 
-  <p><strong>Estimate only — not tax advice.</strong> Income tax only (no NI or student loan). England, Wales &amp; Northern Ireland rules. Always verify against <a href="https://www.gov.uk/check-income-tax-current-year" target="_blank">your HMRC personal tax account</a>.</p>
+  <main>
+    <section class="add-form">
+      <h2>Add a job</h2>
+      <div class="form-row">
+        <label>Gross pay (£)<input id="draft-gross" type="number" min="0" placeholder="7500"></label>
+        <label>Tax deducted (£)<input id="draft-tax" type="number" min="0" placeholder="870"></label>
+        <label>Tax code<input id="draft-code" type="text" placeholder="1257L"></label>
+      </div>
+      <p id="form-error" class="form-error" hidden aria-live="polite"></p>
+      <button id="add-btn" class="btn-primary" onclick="addJob()">+ Add job</button>
+    </section>
 
-  <div id="jobs-list"></div>
-  <button onclick="addJob()">+ Add job</button>
-  <button onclick="calculate()">Calculate</button>
+    <div id="jobs-list"></div>
 
-  <div id="result"></div>
+    <button id="calc-btn" class="btn-primary" onclick="calculate()" hidden>Calculate</button>
+
+    <div id="result" aria-live="polite"></div>
+  </main>
 
   <script>
     const TAX_YEAR = {
@@ -47,55 +319,101 @@
       const totalIncome   = jobs.reduce((sum, j) => sum + j.grossPay, 0);
       const totalDeducted = jobs.reduce((sum, j) => sum + j.taxDeducted, 0);
       const due           = correctTax(totalIncome);
-      const difference    = totalDeducted - due; // positive = overpaid, negative = underpaid
+      const difference    = totalDeducted - due;
       return { totalIncome, totalDeducted, due, difference };
     }
 
-    let jobs = [{ grossPay: '', taxDeducted: '', taxCode: '' }];
+    let jobs = [];
 
-    function render() {
-      const list = document.getElementById('jobs-list');
-      list.innerHTML = '';
-      jobs.forEach(function(job, i) {
-        const row = document.createElement('div');
-        row.innerHTML = `
-          <span>Job ${i + 1}:</span>
-          <label>Gross pay £<input type="number" min="0" value="${job.grossPay}" oninput="jobs[${i}].grossPay = this.value"></label>
-          <label>Tax deducted £<input type="number" min="0" value="${job.taxDeducted}" oninput="jobs[${i}].taxDeducted = this.value"></label>
-          <label>Tax code <input type="text" value="${job.taxCode}" oninput="jobs[${i}].taxCode = this.value"></label>
-          <button onclick="removeJob(${i})">Remove</button>
-        `;
-        list.appendChild(row);
-      });
-    }
-
-    function addJob() {
-      jobs.push({ grossPay: '', taxDeducted: '', taxCode: '' });
-      render();
-    }
-
-    function removeJob(i) {
-      jobs.splice(i, 1);
-      render();
+    function generateId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
     }
 
     function gbp(n) {
-      return '£' + n.toFixed(2);
+      const hasPence = n % 1 !== 0;
+      return '£' + n.toLocaleString('en-GB', {
+        minimumFractionDigits: hasPence ? 2 : 0,
+        maximumFractionDigits: hasPence ? 2 : 0
+      });
     }
 
-    function calculate() {
-      const filled = jobs
-        .map(j => ({ grossPay: Number(j.grossPay), taxDeducted: Number(j.taxDeducted), taxCode: j.taxCode }))
-        .filter(j => j.grossPay > 0);
+    function render() {
+      const list    = document.getElementById('jobs-list');
+      const calcBtn = document.getElementById('calc-btn');
 
-      const resultEl = document.getElementById('result');
-
-      if (filled.length === 0) {
-        resultEl.textContent = 'Add at least one job with a gross pay amount.';
+      if (jobs.length === 0) {
+        list.innerHTML = '<p class="empty-state">No jobs added yet — use the form above to add your first.</p>';
+        calcBtn.hidden = true;
         return;
       }
 
-      const { totalIncome, totalDeducted, due, difference } = checkTax(filled);
+      list.innerHTML = jobs.map((job, i) => `
+        <div class="job-card">
+          <div class="job-fields">
+            <span class="job-field">
+              <span class="field-label">Gross pay</span>
+              <span>${gbp(job.grossPay)}</span>
+            </span>
+            <span class="job-field">
+              <span class="field-label">Tax deducted</span>
+              <span>${gbp(job.taxDeducted)}</span>
+            </span>
+            <span class="job-field">
+              <span class="field-label">Tax code</span>
+              <span>${job.taxCode || '—'}</span>
+            </span>
+          </div>
+          <button class="remove-btn" onclick="removeJob('${job.id}')">Remove</button>
+        </div>
+      `).join('');
+
+      calcBtn.hidden = false;
+    }
+
+    function addJob() {
+      const grossInput = document.getElementById('draft-gross');
+      const taxInput   = document.getElementById('draft-tax');
+      const codeInput  = document.getElementById('draft-code');
+      const errorEl    = document.getElementById('form-error');
+
+      const grossPay = Number(grossInput.value);
+
+      if (!grossInput.value || grossPay <= 0) {
+        errorEl.textContent = 'Enter a gross pay amount greater than £0.';
+        errorEl.hidden = false;
+        grossInput.focus();
+        return;
+      }
+
+      errorEl.hidden = true;
+      jobs.push({
+        id:          generateId(),
+        grossPay:    grossPay,
+        taxDeducted: Number(taxInput.value) || 0,
+        taxCode:     codeInput.value.trim()
+      });
+
+      grossInput.value = '';
+      taxInput.value   = '';
+      codeInput.value  = '';
+      grossInput.focus();
+      render();
+    }
+
+    function removeJob(id) {
+      jobs = jobs.filter(j => j.id !== id);
+      render();
+    }
+
+    function calculate() {
+      const resultEl = document.getElementById('result');
+
+      if (jobs.length === 0) {
+        resultEl.textContent = 'Add at least one job first.';
+        return;
+      }
+
+      const { totalIncome, totalDeducted, due, difference } = checkTax(jobs);
 
       let verdict;
       if (difference > 0) {
@@ -108,29 +426,39 @@
 
       const reasons = [];
 
-      if (totalIncome < TAX_YEAR.personalAllowance && filled.some(j => j.taxCode.toUpperCase() !== '1257L')) {
+      if (totalIncome < TAX_YEAR.personalAllowance && jobs.some(j => j.taxCode.toUpperCase() !== '1257L')) {
         reasons.push('Your total income is below the £12,570 tax-free allowance, but at least one job deducted tax anyway (a BR or emergency code). That tax is likely reclaimable.');
       }
 
-      if (filled.some(j => /W1|M1/i.test(j.taxCode))) {
-        reasons.push('An emergency tax code (W1 or M1) was used on at least one job. These tax each pay period in isolation and often over-deduct if you didn\'t work the full year.');
+      if (jobs.some(j => /W1|M1/i.test(j.taxCode))) {
+        reasons.push("An emergency tax code (W1 or M1) was used on at least one job. These tax each pay period in isolation and often over-deduct if you didn't work the full year.");
       }
 
-      if (filled.some(j => j.taxCode.toUpperCase() === 'BR')) {
-        reasons.push('A BR code taxes every pound at 20% with no personal allowance. This is only correct if another job already uses your full allowance — if your total income is below £12,570, it\'s too much.');
+      if (jobs.some(j => j.taxCode.toUpperCase() === 'BR')) {
+        reasons.push("A BR code taxes every pound at 20% with no personal allowance. This is only correct if another job already uses your full allowance — if your total income is below £12,570, it's too much.");
       }
 
       const reasonsHtml = reasons.length > 0
         ? '<ul>' + reasons.map(r => `<li>${r}</li>`).join('') + '</ul>'
         : '';
 
+      const colourClass = difference > 0 ? 'green' : difference < 0 ? 'amber' : 'neutral';
+      const label       = difference > 0 ? 'Estimated overpayment' : difference < 0 ? 'Estimated underpayment' : 'Estimated balance';
+
       resultEl.innerHTML = `
-        <p>Total income: ${gbp(totalIncome)}</p>
-        <p>Tax owed on that income: ${gbp(due)}</p>
-        <p>Tax actually deducted: ${gbp(totalDeducted)}</p>
-        <p><strong>${verdict}</strong></p>
-        ${reasonsHtml}
-        <p>To check or claim a refund, use your <a href="https://www.gov.uk/personal-tax-account" target="_blank">HMRC personal tax account</a> or wait for a P800 letter.</p>
+        <div class="result-card ${colourClass}">
+          <p class="result-label">${label}</p>
+          <hr>
+          <p class="result-figure">${gbp(Math.abs(difference))}</p>
+          <p class="result-verdict">${verdict}</p>
+          <div class="result-breakdown">
+            <div class="breakdown-row"><span>Total income</span><span>${gbp(totalIncome)}</span></div>
+            <div class="breakdown-row"><span>Tax owed on that income</span><span>${gbp(due)}</span></div>
+            <div class="breakdown-row"><span>Tax actually deducted</span><span>${gbp(totalDeducted)}</span></div>
+          </div>
+          ${reasonsHtml}
+          <p class="result-footer">To check or claim a refund, use your <a href="https://www.gov.uk/personal-tax-account" target="_blank">HMRC personal tax account</a> or wait for a P800 letter.</p>
+        </div>
       `;
     }
 
