@@ -136,12 +136,21 @@
 
     .job-card {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
+      gap: 1rem;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 0.875rem 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .job-card-body { flex: 1; min-width: 0; }
+
+    .job-name {
+      font-weight: 600;
+      font-size: 0.9375rem;
       margin-bottom: 0.5rem;
     }
 
@@ -157,7 +166,16 @@
       color: var(--muted);
     }
 
-    .remove-btn {
+    .job-card--editing { border-color: var(--text); }
+
+    .job-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .edit-btn, .remove-btn {
       font-size: 0.8125rem;
       color: var(--muted);
       background: none;
@@ -165,13 +183,30 @@
       border-radius: calc(var(--radius) - 2px);
       padding: 0.3rem 0.6rem;
       cursor: pointer;
-      flex-shrink: 0;
-      margin-left: 1rem;
       transition: color 0.15s, border-color 0.15s;
+      width: 100%;
+      text-align: center;
     }
 
-    .remove-btn:hover { color: var(--text); border-color: var(--text); }
-    .remove-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .edit-btn:hover, .remove-btn:hover { color: var(--text); border-color: var(--text); }
+    .edit-btn:focus-visible, .remove-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+    .btn-save {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--text);
+      border: 1px solid var(--text);
+      border-radius: calc(var(--radius) - 2px);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: opacity 0.15s;
+    }
+
+    .btn-save:hover { opacity: 0.82; }
+    .btn-save:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
     .empty-state {
       text-align: center;
@@ -273,7 +308,10 @@
 
   <main>
     <section class="add-form">
-      <h2>Add a job</h2>
+      <h2 id="form-heading">Add a job</h2>
+      <div class="form-row">
+        <label>Job name (optional)<input id="draft-name" type="text" placeholder="e.g. Company or Title"></label>
+      </div>
       <div class="form-row">
         <label>Gross pay (£)<input id="draft-gross" type="number" min="0" placeholder="7500"></label>
         <label>Tax deducted (£)<input id="draft-tax" type="number" min="0" placeholder="870"></label>
@@ -324,9 +362,20 @@
     }
 
     let jobs = [];
+    let editingId = null;
 
     function generateId() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function jobLabel(job) {
+      return job.name || ('Job ' + (jobs.indexOf(job) + 1));
+    }
+
+    function joinNames(names) {
+      if (names.length === 1) return names[0];
+      if (names.length === 2) return names[0] + ' and ' + names[1];
+      return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
     }
 
     function gbp(n) {
@@ -347,30 +396,60 @@
         return;
       }
 
-      list.innerHTML = jobs.map((job, i) => `
-        <div class="job-card">
-          <div class="job-fields">
-            <span class="job-field">
-              <span class="field-label">Gross pay</span>
-              <span>${gbp(job.grossPay)}</span>
-            </span>
-            <span class="job-field">
-              <span class="field-label">Tax deducted</span>
-              <span>${gbp(job.taxDeducted)}</span>
-            </span>
-            <span class="job-field">
-              <span class="field-label">Tax code</span>
-              <span>${job.taxCode || '—'}</span>
-            </span>
+      list.innerHTML = jobs.map((job, i) => {
+        if (job.id === editingId) {
+          return `
+            <div class="job-card job-card--editing">
+              <div class="job-card-body">
+                <div class="form-row">
+                  <label>Job name (optional)<input class="edit-name" type="text" value="${job.name}" placeholder="e.g. Company or Title"></label>
+                </div>
+                <div class="form-row">
+                  <label>Gross pay (£)<input class="edit-gross" type="number" min="0" value="${job.grossPay}" placeholder="7500"></label>
+                  <label>Tax deducted (£)<input class="edit-tax" type="number" min="0" value="${job.taxDeducted}" placeholder="870"></label>
+                  <label>Tax code<input class="edit-code" type="text" value="${job.taxCode}" placeholder="1257L"></label>
+                </div>
+                <p class="edit-error form-error" hidden aria-live="polite"></p>
+              </div>
+              <div class="job-actions">
+                <button class="btn-save" onclick="saveJob('${job.id}')">Save</button>
+                <button class="remove-btn" onclick="cancelEdit()">Cancel</button>
+              </div>
+            </div>
+          `;
+        }
+        return `
+          <div class="job-card">
+            <div class="job-card-body">
+              <p class="job-name">${job.name || 'Job ' + (i + 1)}</p>
+              <div class="job-fields">
+                <span class="job-field">
+                  <span class="field-label">Gross pay</span>
+                  <span>${gbp(job.grossPay)}</span>
+                </span>
+                <span class="job-field">
+                  <span class="field-label">Tax deducted</span>
+                  <span>${gbp(job.taxDeducted)}</span>
+                </span>
+                <span class="job-field">
+                  <span class="field-label">Tax code</span>
+                  <span>${job.taxCode || '—'}</span>
+                </span>
+              </div>
+            </div>
+            <div class="job-actions">
+              <button class="edit-btn" onclick="editJob('${job.id}')">Edit</button>
+              <button class="remove-btn" onclick="removeJob('${job.id}')">Remove</button>
+            </div>
           </div>
-          <button class="remove-btn" onclick="removeJob('${job.id}')">Remove</button>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       calcBtn.hidden = false;
     }
 
     function addJob() {
+      const nameInput  = document.getElementById('draft-name');
       const grossInput = document.getElementById('draft-gross');
       const taxInput   = document.getElementById('draft-tax');
       const codeInput  = document.getElementById('draft-code');
@@ -388,19 +467,58 @@
       errorEl.hidden = true;
       jobs.push({
         id:          generateId(),
+        name:        nameInput.value.trim(),
         grossPay:    grossPay,
         taxDeducted: Number(taxInput.value) || 0,
         taxCode:     codeInput.value.trim()
       });
 
+      nameInput.value  = '';
       grossInput.value = '';
       taxInput.value   = '';
       codeInput.value  = '';
-      grossInput.focus();
+      nameInput.focus();
+      render();
+    }
+
+    function editJob(id) {
+      editingId = id;
+      render();
+      const first = document.querySelector('.edit-name');
+      if (first) first.focus();
+    }
+
+    function saveJob(id) {
+      const grossInput = document.querySelector('.edit-gross');
+      const errorEl    = document.querySelector('.edit-error');
+      const grossPay   = Number(grossInput.value);
+
+      if (!grossInput.value || grossPay <= 0) {
+        errorEl.textContent = 'Enter a gross pay amount greater than £0.';
+        errorEl.hidden = false;
+        grossInput.focus();
+        return;
+      }
+
+      jobs = jobs.map(j => j.id === id ? {
+        ...j,
+        name:        document.querySelector('.edit-name').value.trim(),
+        grossPay:    grossPay,
+        taxDeducted: Number(document.querySelector('.edit-tax').value) || 0,
+        taxCode:     document.querySelector('.edit-code').value.trim()
+      } : j);
+
+      editingId = null;
+      render();
+    }
+
+    function cancelEdit() {
+      editingId = null;
       render();
     }
 
     function removeJob(id) {
+      if (editingId === id) editingId = null;
       jobs = jobs.filter(j => j.id !== id);
       render();
     }
@@ -426,16 +544,22 @@
 
       const reasons = [];
 
-      if (totalIncome < TAX_YEAR.personalAllowance && jobs.some(j => j.taxCode.toUpperCase() !== '1257L')) {
-        reasons.push('Your total income is below the £12,570 tax-free allowance, but at least one job deducted tax anyway (a BR or emergency code). That tax is likely reclaimable.');
+      const taxedUnderAllowance = jobs.filter(j => j.taxCode.toUpperCase() !== '1257L');
+      if (totalIncome < TAX_YEAR.personalAllowance && taxedUnderAllowance.length > 0) {
+        const names = joinNames(taxedUnderAllowance.map(j => jobLabel(j)));
+        reasons.push(`Your total income is below the £12,570 tax-free allowance, but ${names} deducted tax anyway (via a BR or emergency code). That tax is likely reclaimable.`);
       }
 
-      if (jobs.some(j => /W1|M1/i.test(j.taxCode))) {
-        reasons.push("An emergency tax code (W1 or M1) was used on at least one job. These tax each pay period in isolation and often over-deduct if you didn't work the full year.");
+      const emergencyJobs = jobs.filter(j => /W1|M1/i.test(j.taxCode));
+      if (emergencyJobs.length > 0) {
+        const names = joinNames(emergencyJobs.map(j => jobLabel(j)));
+        reasons.push(`${names} used an emergency tax code (W1 or M1). These tax each pay period in isolation and often over-deduct if you didn't work the full year.`);
       }
 
-      if (jobs.some(j => j.taxCode.toUpperCase() === 'BR')) {
-        reasons.push("A BR code taxes every pound at 20% with no personal allowance. This is only correct if another job already uses your full allowance — if your total income is below £12,570, it's too much.");
+      const brJobs = jobs.filter(j => j.taxCode.toUpperCase() === 'BR');
+      if (brJobs.length > 0) {
+        const names = joinNames(brJobs.map(j => jobLabel(j)));
+        reasons.push(`${names} used a BR code, which taxes every pound at 20% with no personal allowance. This is only correct if another job already uses your full allowance — if your total income is below £12,570, it's too much.`);
       }
 
       const reasonsHtml = reasons.length > 0
