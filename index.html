@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tax Checker</title>
+  <style>
+    /* styles go here later */
+  </style>
+</head>
+<body>
+  <h1>Tax Overpayment Checker</h1>
+
+  <p><strong>Estimate only — not tax advice.</strong> Income tax only (no NI or student loan). England, Wales &amp; Northern Ireland rules. Always verify against <a href="https://www.gov.uk/check-income-tax-current-year" target="_blank">your HMRC personal tax account</a>.</p>
+
+  <div id="jobs-list"></div>
+  <button onclick="addJob()">+ Add job</button>
+  <button onclick="calculate()">Calculate</button>
+
+  <div id="result"></div>
+
+  <script>
+    const TAX_YEAR = {
+      personalAllowance: 12570,
+      bands: [
+        { upTo: 50270,    rate: 0.20 },
+        { upTo: 125140,   rate: 0.40 },
+        { upTo: Infinity, rate: 0.45 }
+      ]
+    };
+
+    function correctTax(totalIncome) {
+      let taxable = Math.max(0, totalIncome - TAX_YEAR.personalAllowance);
+      let tax = 0;
+      let lowerBound = TAX_YEAR.personalAllowance;
+      for (const band of TAX_YEAR.bands) {
+        if (taxable <= 0) break;
+        const bandWidth = band.upTo - lowerBound;
+        const slice = Math.min(taxable, bandWidth);
+        tax += slice * band.rate;
+        taxable -= slice;
+        lowerBound = band.upTo;
+      }
+      return tax;
+    }
+
+    function checkTax(jobs) {
+      const totalIncome   = jobs.reduce((sum, j) => sum + j.grossPay, 0);
+      const totalDeducted = jobs.reduce((sum, j) => sum + j.taxDeducted, 0);
+      const due           = correctTax(totalIncome);
+      const difference    = totalDeducted - due; // positive = overpaid, negative = underpaid
+      return { totalIncome, totalDeducted, due, difference };
+    }
+
+    let jobs = [{ grossPay: '', taxDeducted: '', taxCode: '' }];
+
+    function render() {
+      const list = document.getElementById('jobs-list');
+      list.innerHTML = '';
+      jobs.forEach(function(job, i) {
+        const row = document.createElement('div');
+        row.innerHTML = `
+          <span>Job ${i + 1}:</span>
+          <label>Gross pay £<input type="number" min="0" value="${job.grossPay}" oninput="jobs[${i}].grossPay = this.value"></label>
+          <label>Tax deducted £<input type="number" min="0" value="${job.taxDeducted}" oninput="jobs[${i}].taxDeducted = this.value"></label>
+          <label>Tax code <input type="text" value="${job.taxCode}" oninput="jobs[${i}].taxCode = this.value"></label>
+          <button onclick="removeJob(${i})">Remove</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function addJob() {
+      jobs.push({ grossPay: '', taxDeducted: '', taxCode: '' });
+      render();
+    }
+
+    function removeJob(i) {
+      jobs.splice(i, 1);
+      render();
+    }
+
+    function gbp(n) {
+      return '£' + n.toFixed(2);
+    }
+
+    function calculate() {
+      const filled = jobs
+        .map(j => ({ grossPay: Number(j.grossPay), taxDeducted: Number(j.taxDeducted), taxCode: j.taxCode }))
+        .filter(j => j.grossPay > 0);
+
+      const resultEl = document.getElementById('result');
+
+      if (filled.length === 0) {
+        resultEl.textContent = 'Add at least one job with a gross pay amount.';
+        return;
+      }
+
+      const { totalIncome, totalDeducted, due, difference } = checkTax(filled);
+
+      let verdict;
+      if (difference > 0) {
+        verdict = `You likely overpaid ${gbp(difference)} — you may be owed a refund.`;
+      } else if (difference < 0) {
+        verdict = `You may have underpaid ${gbp(Math.abs(difference))} — worth checking before HMRC does.`;
+      } else {
+        verdict = 'It looks like you paid exactly the right amount of tax.';
+      }
+
+      const reasons = [];
+
+      if (totalIncome < TAX_YEAR.personalAllowance && filled.some(j => j.taxCode.toUpperCase() !== '1257L')) {
+        reasons.push('Your total income is below the £12,570 tax-free allowance, but at least one job deducted tax anyway (a BR or emergency code). That tax is likely reclaimable.');
+      }
+
+      if (filled.some(j => /W1|M1/i.test(j.taxCode))) {
+        reasons.push('An emergency tax code (W1 or M1) was used on at least one job. These tax each pay period in isolation and often over-deduct if you didn\'t work the full year.');
+      }
+
+      if (filled.some(j => j.taxCode.toUpperCase() === 'BR')) {
+        reasons.push('A BR code taxes every pound at 20% with no personal allowance. This is only correct if another job already uses your full allowance — if your total income is below £12,570, it\'s too much.');
+      }
+
+      const reasonsHtml = reasons.length > 0
+        ? '<ul>' + reasons.map(r => `<li>${r}</li>`).join('') + '</ul>'
+        : '';
+
+      resultEl.innerHTML = `
+        <p>Total income: ${gbp(totalIncome)}</p>
+        <p>Tax owed on that income: ${gbp(due)}</p>
+        <p>Tax actually deducted: ${gbp(totalDeducted)}</p>
+        <p><strong>${verdict}</strong></p>
+        ${reasonsHtml}
+        <p>To check or claim a refund, use your <a href="https://www.gov.uk/personal-tax-account" target="_blank">HMRC personal tax account</a> or wait for a P800 letter.</p>
+      `;
+    }
+
+    render();
+  </script>
+</body>
+</html>
